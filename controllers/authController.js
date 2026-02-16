@@ -2,73 +2,99 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-
 // ============================
 // helpers
 // ============================
-const createAccessToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+const createAccessToken = (id) => {
+  if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET missing");
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+};
 
-const createRefreshToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
-
+const createRefreshToken = (id) => {
+  if (!process.env.JWT_REFRESH_SECRET) throw new Error("JWT_REFRESH_SECRET missing");
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+};
 
 // ============================
 // REGISTER
 // ============================
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  const exists = await User.findOne({ email });
-  if (exists) return res.status(400).json("Email already exists");
+    if (!name || !email || !password)
+      return res.status(400).json("All fields required");
 
-  const hash = await bcrypt.hash(password, 10);
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json("Email already exists");
 
-  const user = await User.create({
-    name,
-    email,
-    password: hash
-  });
+    const hash = await bcrypt.hash(password, 10);
 
-  res.json({
-    accessToken: createAccessToken(user._id),
-    refreshToken: createRefreshToken(user._id)
-  });
+    const user = await User.create({
+      name,
+      email,
+      password: hash,
+    });
+
+    res.json({
+      accessToken: createAccessToken(user._id),
+      refreshToken: createRefreshToken(user._id),
+    });
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    res.status(500).json("Server error");
+  }
 };
-
 
 // ============================
 // LOGIN
 // ============================
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json("Invalid credentials");
+    if (!email || !password)
+      return res.status(400).json("Email & password required");
 
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(400).json("Invalid credentials");
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json("Invalid credentials");
 
-  res.json({
-    accessToken: createAccessToken(user._id),
-    refreshToken: createRefreshToken(user._id)
-  });
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) return res.status(400).json("Invalid credentials");
+
+    res.json({
+      accessToken: createAccessToken(user._id),
+      refreshToken: createRefreshToken(user._id),
+    });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json("Server error");
+  }
 };
 
-
 // ============================
-// REFRESH (silent login)
+// REFRESH
 // ============================
 export const refresh = async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    if (!refreshToken)
+      return res.status(401).json("No token");
 
-    const newAccess = createAccessToken(decoded.id);
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET
+    );
 
-    res.json({ accessToken: newAccess });
-  } catch {
+    res.json({
+      accessToken: createAccessToken(decoded.id),
+    });
+
+  } catch (err) {
+    console.error("REFRESH ERROR:", err);
     res.status(401).json("Session expired");
   }
 };

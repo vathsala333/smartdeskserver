@@ -9,7 +9,13 @@ import aiRoutes from "./routes/aiRoutes.js"; // ✅ ADD THIS
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://smartdeskclient.netlify.app"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
