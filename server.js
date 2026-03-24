@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-
+import authRoutes from "./routes/authRoutes.js";
 
 import ticketRoutes from "./routes/ticketRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js"; // ✅ ADD THIS
@@ -22,13 +22,14 @@ app.use(express.json());
 //app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/ai", aiRoutes); // ✅ ADD THIS
-
+app.use("/api/auth", authRoutes);
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connected");
-    app.listen(5000, () => {
-      console.log("🚀 Server running on http://localhost:5000");
-    });
+    const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on ${PORT}`);
+});
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
