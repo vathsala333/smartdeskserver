@@ -3,7 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 
-import authRoutes from "./routes/authRoutes.js";
+
 import ticketRoutes from "./routes/ticketRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js"; // ✅ ADD THIS
 
